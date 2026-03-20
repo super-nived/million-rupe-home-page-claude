@@ -1,0 +1,9 @@
+export const CANVAS_PX = 1000;
+export const BLOCK = 1;
+export const GRID = CANVAS_PX / BLOCK;
+export const VISUAL_BLOCK = 10;
+export const MIN_PIXELS = 10;
+export const MIN_ZOOM = 1;
+export const MAX_ZOOM = 25;
+export const ZOOM_STEP_WHEEL = 0.08;
+export const ZOOM_STEP_BUTTON = 1.5;
