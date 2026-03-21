@@ -26,12 +26,12 @@ export default function App() {
   const { hoveredAd, selectedAd } = useSelector((s) => s.ads);
   const mode = useSelector((s) => s.purchase.mode);
 
-  const { data: ads = [] } = useAdsQuery();
+  const { data: ads = [], isLoading, isError, error } = useAdsQuery();
   const { toast, notify } = useToast();
   const containerSize = useContainerSize(containerRef);
 
   const { pointerHandlers, touchHandlers } = useGridInteractions(svgRef, containerRef, ads);
-  const { selection, purchase, clearArea, setFormField, form, setImage } = usePurchase(ads, notify);
+  const { selection, purchase, clearArea, setFormField, form, setImage, isPurchasing } = usePurchase(ads, notify);
 
   const baseScale = Math.min(containerSize.w / CANVAS_PX, containerSize.h / CANVAS_PX);
   const scale = baseScale * zoom;
@@ -96,6 +96,40 @@ export default function App() {
           />
         </div>
 
+        {isLoading && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.5)', zIndex: 50,
+          }}>
+            <div style={{ color: '#fff', fontSize: 18, textAlign: 'center' }}>
+              <div style={{ marginBottom: 8 }}>Loading ads...</div>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>Connecting to Firebase</div>
+            </div>
+          </div>
+        )}
+
+        {isError && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.5)', zIndex: 50,
+          }}>
+            <div style={{
+              background: '#1a1a2e', border: '1px solid #e74c3c', borderRadius: 8,
+              padding: 24, maxWidth: 400, textAlign: 'center',
+            }}>
+              <div style={{ color: '#e74c3c', fontSize: 18, marginBottom: 8 }}>Failed to load ads</div>
+              <div style={{ color: '#aaa', fontSize: 13, marginBottom: 12 }}>
+                {error?.message || 'Unknown error'}
+              </div>
+              <div style={{ color: '#888', fontSize: 12 }}>
+                Check that Firestore rules are deployed and the index for "createdAt" exists.
+              </div>
+            </div>
+          </div>
+        )}
+
         {hoveredAd && mode === 'view' && <HoverTooltip ad={hoveredAd} />}
 
         {selectedAd && mode === 'view' && (
@@ -113,6 +147,7 @@ export default function App() {
             onClear={clearArea}
             onPurchase={purchase}
             onImageUpload={setImage}
+            isPurchasing={isPurchasing}
           />
         )}
 

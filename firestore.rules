@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /ads/{adId} {
+      // Anyone can read ads
+      allow read: if true;
+
+      // Validated creation only
+      allow create: if isValidAd();
+
+      // Ads are immutable once purchased
+      // Only allow imageUrl update (for image upload after doc creation)
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrl'])
+                    && request.resource.data.imageUrl is string;
+
+      // No deletions
+      allow delete: if false;
+    }
+
+    function isValidAd() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['bx', 'by', 'bw', 'bh', 'color', 'label', 'url', 'owner', 'imageUrl', 'createdAt'])
+        && data.bx is int && data.by is int
+        && data.bw is int && data.bh is int
+        && data.bx >= 0 && data.by >= 0
+        && data.bw > 0 && data.bh > 0
+        && data.bx + data.bw <= 1000
+        && data.by + data.bh <= 1000
+        && data.label is string && data.label.size() > 0 && data.label.size() <= 50
+        && data.owner is string && data.owner.size() <= 50
+        && data.url is string && data.url.size() <= 500
+        && data.color is string && data.color.size() <= 10
+        && data.createdAt == request.time;
+    }
+  }
+}

@@ -2,16 +2,17 @@ import { memo } from 'react';
 
 const AdRect = memo(function AdRect({ ad, scale, isHovered, isSelected }) {
   const { bx, by, bw, bh } = ad;
+  const clipId = `clip-${ad.id}`;
   const highlighted = isHovered || isSelected;
-  const hasImage = !!ad.image;
-  const showLabel = !hasImage && scale > 0.5 && bw * scale > 24;
-  const fontSize = Math.min(
-    Math.max(bw / (ad.label.length * 0.72), 3.5),
-    Math.min(bw, bh) * 0.32
-  );
+  const hasImage = !!ad.imageUrl;
 
   return (
     <g>
+      <defs>
+        <clipPath id={clipId}>
+          <rect x={bx} y={by} width={bw} height={bh} rx={0.8} />
+        </clipPath>
+      </defs>
       <rect
         x={bx}
         y={by}
@@ -26,42 +27,15 @@ const AdRect = memo(function AdRect({ ad, scale, isHovered, isSelected }) {
       />
       {hasImage && (
         <image
-          href={ad.image}
+          href={ad.imageUrl}
           x={bx}
           y={by}
           width={bw}
           height={bh}
           preserveAspectRatio="xMidYMid slice"
+          clipPath={`url(#${clipId})`}
           style={{ pointerEvents: 'none' }}
         />
-      )}
-      {showLabel && (
-        <text
-          x={bx + bw / 2}
-          y={by + bh / 2}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fill="#fff"
-          fontSize={fontSize}
-          fontWeight={700}
-          style={{ pointerEvents: 'none', textShadow: '0 1px 2px rgba(0,0,0,.7)' }}
-        >
-          {ad.label}
-        </text>
-      )}
-      {hasImage && highlighted && (
-        <text
-          x={bx + bw / 2}
-          y={by + bh - 2 / scale}
-          textAnchor="middle"
-          dominantBaseline="auto"
-          fill="#fff"
-          fontSize={Math.max(3, Math.min(bw * 0.18, 8))}
-          fontWeight={700}
-          style={{ pointerEvents: 'none', textShadow: '0 1px 3px rgba(0,0,0,.9)' }}
-        >
-          {ad.label}
-        </text>
       )}
     </g>
   );

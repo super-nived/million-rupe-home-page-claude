@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearSelection, resetPurchase, updateForm } from './purchaseSlice';
 import { usePurchaseAd } from '../ads/useAds';
@@ -10,6 +10,7 @@ export function usePurchase(ads, notify) {
   const dispatch = useDispatch();
   const { selA, selB, form } = useSelector((s) => s.purchase);
   const mutation = usePurchaseAd();
+  const imageFileRef = useRef(null);
 
   const selection = useMemo(
     () => computeSelection(selA, selB, ads),
@@ -30,8 +31,7 @@ export function usePurchase(ads, notify) {
       return;
     }
 
-    const ad = {
-      id: Date.now(),
+    const adData = {
       bx: selection.bx,
       by: selection.by,
       bw: selection.bw,
@@ -40,12 +40,21 @@ export function usePurchase(ads, notify) {
       label: form.label.trim(),
       url: form.url.trim() || '#',
       owner: form.owner.trim() || 'Anonymous',
-      ...(form.image && { image: form.image }),
     };
 
-    mutation.mutate(ad);
-    notify(`Purchased ${selection.px.toLocaleString()} pixels for ${fmtRupees(selection.px)}!`);
-    dispatch(resetPurchase());
+    mutation.mutate(
+      { adData, imageFile: imageFileRef.current },
+      {
+        onSuccess: () => {
+          notify(`Purchased ${selection.px.toLocaleString()} pixels for ${fmtRupees(selection.px)}!`);
+          imageFileRef.current = null;
+          dispatch(resetPurchase());
+        },
+        onError: (err) => {
+          notify(err.message || 'Purchase failed!', 'err');
+        },
+      }
+    );
   }, [dispatch, selection, form, mutation, notify]);
 
   const clearArea = useCallback(() => {
@@ -60,11 +69,26 @@ export function usePurchase(ads, notify) {
   );
 
   const setImage = useCallback(
-    (imageData) => {
-      dispatch(updateForm({ image: imageData }));
+    (file) => {
+      if (file) {
+        imageFileRef.current = file;
+        const previewUrl = URL.createObjectURL(file);
+        dispatch(updateForm({ image: previewUrl }));
+      } else {
+        imageFileRef.current = null;
+        dispatch(updateForm({ image: null }));
+      }
     },
     [dispatch]
   );
 
-  return { selection, purchase, clearArea, setFormField, setImage, form };
+  return {
+    selection,
+    purchase,
+    clearArea,
+    setFormField,
+    setImage,
+    form,
+    isPurchasing: mutation.isPending,
+  };
 }

@@ -1,0 +1,18 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /ads/{adId}/{fileName} {
+      // Anyone can view ad images
+      allow read: if true;
+
+      // Upload: max 2MB, must be an image
+      allow write: if request.resource.size < 2 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Block all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

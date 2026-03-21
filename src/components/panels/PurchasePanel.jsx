@@ -2,7 +2,7 @@ import { MIN_PIXELS } from '../../constants/grid';
 import { fmtRupees } from '../../utils/formatters';
 import { colors, btnStyle, inputStyle } from '../../styles/theme';
 
-export default function PurchasePanel({ selection, form, onFormChange, onClear, onPurchase, onImageUpload }) {
+export default function PurchasePanel({ selection, form, onFormChange, onClear, onPurchase, onImageUpload, isPurchasing }) {
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -11,9 +11,7 @@ export default function PurchasePanel({ selection, form, onFormChange, onClear, 
       alert('Image must be under 2MB');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => onImageUpload(reader.result);
-    reader.readAsDataURL(file);
+    onImageUpload(file);
   };
 
   return (
@@ -185,18 +183,21 @@ export default function PurchasePanel({ selection, form, onFormChange, onClear, 
                 </button>
                 <button
                   onClick={onPurchase}
+                  disabled={isPurchasing}
                   style={{
                     ...btnStyle,
                     flex: 2,
                     padding: 9,
                     fontSize: 12,
-                    background: colors.accent,
+                    background: isPurchasing ? '#b07808' : colors.accent,
                     color: colors.bg,
                     fontWeight: 700,
                     border: 'none',
+                    opacity: isPurchasing ? 0.7 : 1,
+                    cursor: isPurchasing ? 'wait' : 'pointer',
                   }}
                 >
-                  Pay {fmtRupees(selection.px)} →
+                  {isPurchasing ? 'Purchasing...' : `Pay ${fmtRupees(selection.px)} →`}
                 </button>
               </div>
             </div>
