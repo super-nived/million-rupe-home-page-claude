@@ -31,7 +31,7 @@ export default function App() {
   const containerSize = useContainerSize(containerRef);
 
   const { pointerHandlers, touchHandlers } = useGridInteractions(svgRef, containerRef, ads);
-  const { selection, purchase, clearArea, setFormField, form, setImage, isPurchasing } = usePurchase(ads, notify);
+  const { selection, purchase, clearArea, setFormField, form, setImage, isPurchasing, purchaseStage } = usePurchase(ads, notify);
 
   const baseScale = Math.min(containerSize.w / CANVAS_PX, containerSize.h / CANVAS_PX);
   const scale = baseScale * zoom;
@@ -102,9 +102,16 @@ export default function App() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: 'rgba(0,0,0,0.5)', zIndex: 50,
           }}>
-            <div style={{ color: '#fff', fontSize: 18, textAlign: 'center' }}>
-              <div style={{ marginBottom: 8 }}>Loading ads...</div>
-              <div style={{ fontSize: 12, opacity: 0.7 }}>Connecting to Firebase</div>
+            <div style={{ color: '#fff', textAlign: 'center' }}>
+              <div style={{
+                width: 32, height: 32, margin: '0 auto 12px',
+                border: '3px solid rgba(255,255,255,0.15)',
+                borderTopColor: colors.accent,
+                borderRadius: '50%',
+                animation: 'toastSpin .7s linear infinite',
+              }} />
+              <div style={{ fontSize: 14, fontWeight: 600 }}>Loading ads...</div>
+              <div style={{ fontSize: 11, opacity: 0.5, marginTop: 4 }}>Connecting to Firebase</div>
             </div>
           </div>
         )}
@@ -148,6 +155,7 @@ export default function App() {
             onPurchase={purchase}
             onImageUpload={setImage}
             isPurchasing={isPurchasing}
+            purchaseStage={purchaseStage}
           />
         )}
 

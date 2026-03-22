@@ -31,7 +31,7 @@ export function usePurchaseAd() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ adData, imageFile }) => saveAd(adData, imageFile),
+    mutationFn: ({ adData, imageFile, onProgress }) => saveAd(adData, imageFile, onProgress),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ADS_KEY });
     },

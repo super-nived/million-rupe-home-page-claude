@@ -61,31 +61,47 @@ export async function getAds() {
   }
 }
 
-export async function saveAd(adData, imageFile) {
+export async function saveAd(adData, imageFile, onProgress) {
+  const progress = onProgress || (() => {});
   let imageUrl = null;
 
-  const docRef = await addDoc(collection(db, ADS_COLLECTION), {
-    bx: adData.bx,
-    by: adData.by,
-    bw: adData.bw,
-    bh: adData.bh,
-    color: adData.color,
-    label: adData.label,
-    url: adData.url,
-    owner: adData.owner,
-    imageUrl: null,
-    createdAt: serverTimestamp(),
-  });
+  progress('saving', 'Reserving your pixels...');
+
+  try {
+    var docRef = await addDoc(collection(db, ADS_COLLECTION), {
+      bx: adData.bx,
+      by: adData.by,
+      bw: adData.bw,
+      bh: adData.bh,
+      color: adData.color,
+      label: adData.label,
+      url: adData.url,
+      owner: adData.owner,
+      imageUrl: null,
+      createdAt: serverTimestamp(),
+    });
+  } catch (err) {
+    const msg = err.code === 'permission-denied'
+      ? 'Permission denied — check Firestore rules'
+      : err.code === 'unavailable'
+        ? 'Server unavailable — check your connection'
+        : `Failed to save: ${err.message}`;
+    throw new Error(msg);
+  }
 
   if (imageFile) {
+    progress('uploading', 'Uploading your image...');
     try {
       imageUrl = await uploadAdImage(docRef.id, imageFile);
+      progress('finalizing', 'Finishing up...');
       await updateDoc(docFn(db, ADS_COLLECTION, docRef.id), { imageUrl });
     } catch (imgErr) {
       console.error('Image upload failed:', imgErr.message);
-      // Ad was still created, just without image
+      progress('warning', 'Ad saved, but image upload failed — you can try again later');
     }
   }
+
+  progress('done', 'Purchase complete!');
 
   return {
     id: docRef.id,

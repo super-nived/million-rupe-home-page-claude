@@ -4,17 +4,27 @@ export function useToast(duration = 3000) {
   const [toast, setToast] = useState(null);
   const timerRef = useRef(null);
 
+  const clearTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
   const notify = useCallback(
     (message, type = 'ok') => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      clearTimer();
       setToast({ message, type });
-      timerRef.current = setTimeout(() => setToast(null), duration);
+      // Progress and warning toasts stay until explicitly replaced
+      if (type !== 'progress') {
+        timerRef.current = setTimeout(() => setToast(null), type === 'warning' ? 5000 : duration);
+      }
     },
     [duration]
   );
 
   const dismiss = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
+    clearTimer();
     setToast(null);
   }, []);
 

@@ -2,17 +2,34 @@ import { MIN_PIXELS } from '../../constants/grid';
 import { fmtRupees } from '../../utils/formatters';
 import { colors, btnStyle, inputStyle } from '../../styles/theme';
 
-export default function PurchasePanel({ selection, form, onFormChange, onClear, onPurchase, onImageUpload, isPurchasing }) {
+const STAGE_LABELS = {
+  saving: 'Saving...',
+  uploading: 'Uploading image...',
+  finalizing: 'Finishing up...',
+};
+
+export default function PurchasePanel({ selection, form, onFormChange, onClear, onPurchase, onImageUpload, isPurchasing, purchaseStage }) {
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (JPG, PNG, etc.)');
+      e.target.value = '';
+      return;
+    }
     if (file.size > 2 * 1024 * 1024) {
-      alert('Image must be under 2MB');
+      alert('Image must be under 2 MB — try compressing it first');
+      e.target.value = '';
       return;
     }
     onImageUpload(file);
   };
+
+  const buttonLabel = isPurchasing
+    ? STAGE_LABELS[purchaseStage] || 'Processing...'
+    : selection
+      ? `Pay ${fmtRupees(selection.px)}`
+      : 'Pay';
 
   return (
     <div
@@ -93,19 +110,21 @@ export default function PurchasePanel({ selection, form, onFormChange, onClear, 
           </div>
 
           {selection.free ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, opacity: isPurchasing ? 0.6 : 1, transition: 'opacity .2s', pointerEvents: isPurchasing ? 'none' : 'auto' }}>
               <div style={{ display: 'flex', gap: 6 }}>
                 <input
                   placeholder="Ad name *"
                   value={form.label}
                   onChange={(e) => onFormChange('label', e.target.value)}
                   style={inputStyle}
+                  disabled={isPurchasing}
                 />
                 <input
                   placeholder="Your name"
                   value={form.owner}
                   onChange={(e) => onFormChange('owner', e.target.value)}
                   style={{ ...inputStyle, maxWidth: 110 }}
+                  disabled={isPurchasing}
                 />
               </div>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -114,18 +133,20 @@ export default function PurchasePanel({ selection, form, onFormChange, onClear, 
                   value={form.url}
                   onChange={(e) => onFormChange('url', e.target.value)}
                   style={{ ...inputStyle, flex: 1 }}
+                  disabled={isPurchasing}
                 />
                 <input
                   type="color"
                   value={form.color}
                   onChange={(e) => onFormChange('color', e.target.value)}
+                  disabled={isPurchasing}
                   style={{
                     width: 34,
                     height: 34,
                     border: `1px solid ${colors.borderLight}`,
                     borderRadius: 6,
                     background: 'transparent',
-                    cursor: 'pointer',
+                    cursor: isPurchasing ? 'not-allowed' : 'pointer',
                     padding: 2,
                   }}
                 />
@@ -144,6 +165,7 @@ export default function PurchasePanel({ selection, form, onFormChange, onClear, 
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 6,
+                    cursor: isPurchasing ? 'not-allowed' : 'pointer',
                   }}
                 >
                   <span>{form.image ? '✓ Change Image' : '🖼 Upload Image'}</span>
@@ -152,6 +174,7 @@ export default function PurchasePanel({ selection, form, onFormChange, onClear, 
                     accept="image/*"
                     onChange={handleImageUpload}
                     style={{ display: 'none' }}
+                    disabled={isPurchasing}
                   />
                 </label>
                 {form.image && (
@@ -169,6 +192,7 @@ export default function PurchasePanel({ selection, form, onFormChange, onClear, 
                     />
                     <button
                       onClick={() => onImageUpload(null)}
+                      disabled={isPurchasing}
                       style={{ ...btnStyle, padding: '4px 8px', fontSize: 10 }}
                     >
                       ✕
@@ -178,7 +202,11 @@ export default function PurchasePanel({ selection, form, onFormChange, onClear, 
               </div>
 
               <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={onClear} style={{ ...btnStyle, flex: 1, padding: 9, fontSize: 12 }}>
+                <button
+                  onClick={onClear}
+                  disabled={isPurchasing}
+                  style={{ ...btnStyle, flex: 1, padding: 9, fontSize: 12, opacity: isPurchasing ? 0.5 : 1 }}
+                >
                   Clear
                 </button>
                 <button
@@ -189,15 +217,33 @@ export default function PurchasePanel({ selection, form, onFormChange, onClear, 
                     flex: 2,
                     padding: 9,
                     fontSize: 12,
-                    background: isPurchasing ? '#b07808' : colors.accent,
+                    background: isPurchasing ? colors.accent : colors.accent,
                     color: colors.bg,
                     fontWeight: 700,
                     border: 'none',
-                    opacity: isPurchasing ? 0.7 : 1,
-                    cursor: isPurchasing ? 'wait' : 'pointer',
+                    opacity: isPurchasing ? 0.85 : 1,
+                    cursor: isPurchasing ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    transition: 'opacity .2s',
                   }}
                 >
-                  {isPurchasing ? 'Purchasing...' : `Pay ${fmtRupees(selection.px)} →`}
+                  {isPurchasing && (
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: 12,
+                        height: 12,
+                        border: '2px solid rgba(0,0,0,0.2)',
+                        borderTopColor: colors.bg,
+                        borderRadius: '50%',
+                        animation: 'toastSpin .6s linear infinite',
+                      }}
+                    />
+                  )}
+                  {buttonLabel}
                 </button>
               </div>
             </div>

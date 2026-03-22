@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearSelection, resetPurchase, updateForm } from './purchaseSlice';
 import { usePurchaseAd } from '../ads/useAds';
@@ -11,6 +11,7 @@ export function usePurchase(ads, notify) {
   const { selA, selB, form } = useSelector((s) => s.purchase);
   const mutation = usePurchaseAd();
   const imageFileRef = useRef(null);
+  const [purchaseStage, setPurchaseStage] = useState(null);
 
   const selection = useMemo(
     () => computeSelection(selA, selB, ads),
@@ -19,15 +20,15 @@ export function usePurchase(ads, notify) {
 
   const purchase = useCallback(() => {
     if (!selection?.free) {
-      notify('Area is occupied!', 'err');
+      notify('This area overlaps with an existing ad — pick a different spot', 'err');
       return;
     }
     if (selection.px < MIN_PIXELS) {
-      notify(`Minimum ${MIN_PIXELS} pixels (₹${MIN_PIXELS}) required!`, 'err');
+      notify(`Select at least ${MIN_PIXELS} pixel (${fmtRupees(MIN_PIXELS)}) to purchase`, 'err');
       return;
     }
     if (!form.label.trim()) {
-      notify('Enter an ad name!', 'err');
+      notify('Give your ad a name to continue', 'err');
       return;
     }
 
@@ -42,16 +43,37 @@ export function usePurchase(ads, notify) {
       owner: form.owner.trim() || 'Anonymous',
     };
 
+    const hasImage = !!imageFileRef.current;
+
+    const onProgress = (stage, message) => {
+      setPurchaseStage(stage);
+      if (stage === 'done') {
+        // Don't show 'done' as progress — the success toast handles it
+        return;
+      }
+      if (stage === 'warning') {
+        notify(message, 'warning');
+        return;
+      }
+      notify(message, 'progress');
+    };
+
     mutation.mutate(
-      { adData, imageFile: imageFileRef.current },
+      { adData, imageFile: imageFileRef.current, onProgress },
       {
-        onSuccess: () => {
-          notify(`Purchased ${selection.px.toLocaleString()} pixels for ${fmtRupees(selection.px)}!`);
+        onSuccess: (result) => {
+          setPurchaseStage(null);
+          const pixels = selection.px.toLocaleString();
+          const price = fmtRupees(selection.px);
+          const imgNote = hasImage && result.imageUrl ? ' with image' : hasImage ? ' (image pending)' : '';
+          notify(`${pixels} pixels purchased for ${price}${imgNote}!`, 'ok');
           imageFileRef.current = null;
           dispatch(resetPurchase());
         },
         onError: (err) => {
-          notify(err.message || 'Purchase failed!', 'err');
+          setPurchaseStage(null);
+          const message = err.message || 'Something went wrong';
+          notify(`Purchase failed — ${message}`, 'err');
         },
       }
     );
@@ -90,5 +112,6 @@ export function usePurchase(ads, notify) {
     setImage,
     form,
     isPurchasing: mutation.isPending,
+    purchaseStage,
   };
 }
