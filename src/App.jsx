@@ -16,6 +16,9 @@ import HoverTooltip from './components/panels/HoverTooltip';
 import AdDetailPanel from './components/panels/AdDetailPanel';
 import PurchasePanel from './components/panels/PurchasePanel';
 import PurchaseBadge from './components/PurchaseBadge';
+import Confetti from './components/effects/Confetti';
+import TicketCardModal from './components/modals/TicketCardModal';
+import AboutModal from './components/modals/AboutModal';
 
 export default function App() {
   const dispatch = useDispatch();
@@ -165,9 +168,15 @@ export default function App() {
       <Footer ads={ads} />
 
       <Toast toast={toast} />
+      <Confetti />
+      <TicketCardModal />
+      <AboutModal />
 
       <style>{`
         @keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes ticketSlideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
         *{box-sizing:border-box;margin:0}
         ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#2a2a3a;border-radius:2px}
       `}</style>

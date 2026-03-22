@@ -1,6 +1,12 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Site config (dynamic content, admin-managed)
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if false; // Only admin via Firebase Console
+    }
+
     match /ads/{adId} {
       // Anyone can read ads
       allow read: if true;

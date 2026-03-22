@@ -5,6 +5,8 @@ import { usePurchaseAd } from '../ads/useAds';
 import { computeSelection } from '../../utils/gridHelpers';
 import { fmtRupees } from '../../utils/formatters';
 import { MIN_PIXELS } from '../../constants/grid';
+import { triggerConfetti, showTicketModal } from '../lottery/lotterySlice';
+import { playCelebration, playError } from '../../utils/sounds';
 
 export function usePurchase(ads, notify) {
   const dispatch = useDispatch();
@@ -20,14 +22,17 @@ export function usePurchase(ads, notify) {
 
   const purchase = useCallback(() => {
     if (!selection?.free) {
+      playError();
       notify('This area overlaps with an existing ad — pick a different spot', 'err');
       return;
     }
     if (selection.px < MIN_PIXELS) {
+      playError();
       notify(`Select at least ${MIN_PIXELS} pixel (${fmtRupees(MIN_PIXELS)}) to purchase`, 'err');
       return;
     }
     if (!form.label.trim()) {
+      playError();
       notify('Give your ad a name to continue', 'err');
       return;
     }
@@ -67,11 +72,16 @@ export function usePurchase(ads, notify) {
           const price = fmtRupees(selection.px);
           const imgNote = hasImage && result.imageUrl ? ' with image' : hasImage ? ' (image pending)' : '';
           notify(`${pixels} pixels purchased for ${price}${imgNote}!`, 'ok');
+          // Celebration
+          playCelebration();
+          dispatch(triggerConfetti());
+          dispatch(showTicketModal(result));
           imageFileRef.current = null;
           dispatch(resetPurchase());
         },
         onError: (err) => {
           setPurchaseStage(null);
+          playError();
           const message = err.message || 'Something went wrong';
           notify(`Purchase failed — ${message}`, 'err');
         },

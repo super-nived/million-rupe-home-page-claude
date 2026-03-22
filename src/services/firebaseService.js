@@ -1,6 +1,7 @@
 import {
   collection,
   doc as docFn,
+  getDoc,
   getDocs,
   addDoc,
   updateDoc,
@@ -8,6 +9,7 @@ import {
   serverTimestamp,
   query,
   orderBy,
+  limitToLast,
   writeBatch,
 } from 'firebase/firestore';
 import {
@@ -136,6 +138,49 @@ export function subscribeToAds(callback, onError) {
       console.error('Real-time subscription error:', err.message);
       if (onError) onError(err);
     }
+  );
+}
+
+// --- Site config (dynamic content from Firestore) ---
+
+export async function getSiteConfig() {
+  try {
+    const snap = await getDoc(docFn(db, 'config', 'site'));
+    if (snap.exists()) return snap.data();
+  } catch (e) {
+    console.error('Failed to load site config:', e.message);
+  }
+  return null;
+}
+
+export function subscribeToSiteConfig(callback) {
+  return onSnapshot(
+    docFn(db, 'config', 'site'),
+    (snap) => { if (snap.exists()) callback(snap.data()); },
+    (err) => console.error('Site config subscription error:', err.message)
+  );
+}
+
+// --- Recent purchases feed ---
+
+export function subscribeToRecentPurchases(callback, count = 8) {
+  const q = query(collection(db, ADS_COLLECTION), orderBy('createdAt', 'asc'), limitToLast(count));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const purchases = snapshot.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          label: data.label,
+          owner: data.owner,
+          pixels: data.bw * data.bh,
+          createdAt: data.createdAt,
+        };
+      });
+      callback(purchases);
+    },
+    (err) => console.error('Recent purchases subscription error:', err.message)
   );
 }
 

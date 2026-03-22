@@ -5,6 +5,7 @@ import { setHovered, setSelected } from '../ads/adsSlice';
 import { setSelectionStart, setSelectionEnd } from '../purchase/purchaseSlice';
 import { BLOCK, GRID, ZOOM_STEP_WHEEL, CANVAS_PX } from '../../constants/grid';
 import { adAtBlock } from '../../utils/gridHelpers';
+import { playTap } from '../../utils/sounds';
 
 export function useGridInteractions(svgRef, containerRef, ads) {
   const dispatch = useDispatch();
@@ -104,7 +105,9 @@ export function useGridInteractions(svgRef, containerRef, ads) {
       dispatch(stopDrag());
       if (!movedRef.current && mode === 'view') {
         const b = toBlock(e.clientX, e.clientY);
-        dispatch(setSelected(b ? adAtBlock(ads, b.bx, b.by) : null));
+        const ad = b ? adAtBlock(ads, b.bx, b.by) : null;
+        if (ad) playTap();
+        dispatch(setSelected(ad));
       }
     },
     [dispatch, mode, ads, toBlock]
@@ -171,7 +174,9 @@ export function useGridInteractions(svgRef, containerRef, ads) {
       touchRef.current = {};
       if (!movedRef.current && e.changedTouches.length === 1 && mode === 'view') {
         const b = toBlock(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-        dispatch(setSelected(b ? adAtBlock(ads, b.bx, b.by) : null));
+        const ad = b ? adAtBlock(ads, b.bx, b.by) : null;
+        if (ad) playTap();
+        dispatch(setSelected(ad));
       }
     },
     [dispatch, mode, ads, toBlock]
