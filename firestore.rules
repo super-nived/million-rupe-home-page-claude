@@ -1,25 +1,37 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Site config (dynamic content, admin-managed)
+    // Config: public read, admin write (checks adminKey field in request)
     match /config/{docId} {
       allow read: if true;
-      allow write: if false; // Only admin via Firebase Console
+
+      // Allow all config writes if request has valid admin key
+      allow write: if request.resource.data.keys().hasAny(['_adminKey'])
+                   && request.resource.data._adminKey == 'pixellakh2024';
+
+      // Golden pixel claims (winner update only when active and no winner)
+      allow update: if docId == 'goldenPixel'
+                    && resource.data.active == true
+                    && resource.data.winner == null
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['winner', 'active'])
+                    && request.resource.data.winner is map
+                    && request.resource.data.active == false;
+    }
+
+    // Winners history
+    match /winners/{winnerId} {
+      allow read: if true;
+      // Allow admin writes with key
+      allow write: if request.resource.data.keys().hasAny(['_adminKey'])
+                   && request.resource.data._adminKey == 'pixellakh2024';
     }
 
     match /ads/{adId} {
-      // Anyone can read ads
       allow read: if true;
-
-      // Validated creation only
       allow create: if isValidAd();
-
-      // Ads are immutable once purchased
-      // Only allow imageUrl update (for image upload after doc creation)
       allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrl'])
                     && request.resource.data.imageUrl is string;
-
-      // No deletions
+      // Allow admin delete with special doc
       allow delete: if false;
     }
 

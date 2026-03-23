@@ -3,6 +3,7 @@ import { CANVAS_PX, VISUAL_BLOCK } from '../../constants/grid';
 import AdRect from './AdRect';
 import GridLines from './GridLines';
 import SelectionOverlay from './SelectionOverlay';
+import GoldenPixelGlow from '../effects/GoldenPixelGlow';
 
 const GridCanvas = forwardRef(function GridCanvas(
   { ads, scale, canvasW, canvasH, hoveredAd, selectedAd, mode, selection },
@@ -42,6 +43,8 @@ const GridCanvas = forwardRef(function GridCanvas(
           isSelected={selectedAd?.id === ad.id}
         />
       ))}
+
+      <GoldenPixelGlow scale={1} />
 
       {mode === 'buy' && <SelectionOverlay selection={selection} scale={scale} />}
     </svg>

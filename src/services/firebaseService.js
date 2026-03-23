@@ -143,10 +143,16 @@ export function subscribeToAds(callback, onError) {
 
 // --- Site config (dynamic content from Firestore) ---
 
+function stripAdmin(data) {
+  if (!data) return data;
+  const { _adminKey, ...rest } = data;
+  return rest;
+}
+
 export async function getSiteConfig() {
   try {
     const snap = await getDoc(docFn(db, 'config', 'site'));
-    if (snap.exists()) return snap.data();
+    if (snap.exists()) return stripAdmin(snap.data());
   } catch (e) {
     console.error('Failed to load site config:', e.message);
   }
@@ -156,7 +162,7 @@ export async function getSiteConfig() {
 export function subscribeToSiteConfig(callback) {
   return onSnapshot(
     docFn(db, 'config', 'site'),
-    (snap) => { if (snap.exists()) callback(snap.data()); },
+    (snap) => { if (snap.exists()) callback(stripAdmin(snap.data())); },
     (err) => console.error('Site config subscription error:', err.message)
   );
 }

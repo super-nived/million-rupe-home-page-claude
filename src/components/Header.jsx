@@ -3,13 +3,15 @@ import { setZoom, setPan, resetView } from '../features/grid/gridSlice';
 import { toggleMode } from '../features/purchase/purchaseSlice';
 import { clearSelection as clearAdSelection } from '../features/ads/adsSlice';
 import { openAbout } from '../features/lottery/lotterySlice';
+import { toggleTreasure } from '../features/golden/goldenSlice';
+import { useGoldenConfig } from '../features/golden/useGolden';
 import { ZOOM_STEP_BUTTON, CANVAS_PX } from '../constants/grid';
 import { colors, btnStyle } from '../styles/theme';
 import { useAdsQuery } from '../features/ads/useAds';
 import { useSiteConfig } from '../features/lottery/useLottery';
 import { soldPixels } from '../utils/formatters';
 import Button from './Button';
-import { playDice, playClick } from '../utils/sounds';
+import { playDice, playClick, playZoomIn, playZoomOut, playReset, playTreasureToggle } from '../utils/sounds';
 
 const TOTAL = CANVAS_PX * CANVAS_PX;
 
@@ -17,8 +19,10 @@ export default function Header() {
   const dispatch = useDispatch();
   const zoom = useSelector((s) => s.grid.zoom);
   const mode = useSelector((s) => s.purchase.mode);
+  const treasureMode = useSelector((s) => s.golden.treasureMode);
   const { data: ads = [] } = useAdsQuery();
   const { data: config } = useSiteConfig();
+  const { data: goldenConfig } = useGoldenConfig();
 
   const sold = soldPixels(ads);
   const remaining = TOTAL - sold;
@@ -31,6 +35,15 @@ export default function Header() {
     dispatch(toggleMode());
     dispatch(clearAdSelection());
   };
+
+  const handleTreasureToggle = () => {
+    const newState = !treasureMode;
+    playTreasureToggle(newState);
+    dispatch(toggleTreasure());
+  };
+
+  const goldenActive = goldenConfig?.active && !goldenConfig?.winner;
+  const hasWinner = goldenConfig?.winner;
 
   const handleDiscover = () => {
     if (!ads.length) return;
@@ -130,10 +143,40 @@ export default function Header() {
 
         {/* Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {goldenActive && (
+            <button
+              onClick={handleTreasureToggle}
+              style={{
+                ...btnStyle,
+                padding: '4px 10px',
+                fontSize: 11,
+                background: treasureMode ? 'linear-gradient(90deg, #ffd700, #f59e0b)' : 'transparent',
+                color: treasureMode ? '#000' : '#ffd700',
+                border: `1px solid ${treasureMode ? '#ffd700' : '#ffd70044'}`,
+                fontWeight: 700,
+                animation: treasureMode ? 'none' : 'goldenPulse 2s ease-in-out infinite',
+              }}
+            >
+              {treasureMode ? '🔍 Hunting...' : '💎 Treasure'}
+            </button>
+          )}
+          {hasWinner && (
+            <span style={{
+              fontSize: 10,
+              color: '#ffd700',
+              fontWeight: 600,
+              padding: '3px 8px',
+              background: '#ffd70010',
+              borderRadius: 6,
+              border: '1px solid #ffd70022',
+            }}>
+              🏆 @{goldenConfig.winner.instagram}
+            </span>
+          )}
           <Button onClick={handleDiscover} title="Discover a random ad">🎲</Button>
-          <Button onClick={() => dispatch(resetView())}>⟲</Button>
-          <Button onClick={() => dispatch(setZoom(zoom * ZOOM_STEP_BUTTON))}>+</Button>
-          <Button onClick={() => dispatch(setZoom(zoom / ZOOM_STEP_BUTTON))}>−</Button>
+          <Button onClick={() => { playReset(); dispatch(resetView()); }}>⟲</Button>
+          <Button onClick={() => { playZoomIn(); dispatch(setZoom(zoom * ZOOM_STEP_BUTTON)); }}>+</Button>
+          <Button onClick={() => { playZoomOut(); dispatch(setZoom(zoom / ZOOM_STEP_BUTTON)); }}>−</Button>
           <span style={{ fontSize: 9, color: colors.textDimmer, minWidth: 28, textAlign: 'center' }}>
             {Math.round(zoom * 100)}%
           </span>
