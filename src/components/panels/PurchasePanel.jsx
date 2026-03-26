@@ -3,6 +3,7 @@ import { fmtRupees } from '../../utils/formatters';
 import { colors, btnStyle, inputStyle } from '../../styles/theme';
 
 const STAGE_LABELS = {
+  payment: 'Processing payment...',
   saving: 'Saving...',
   uploading: 'Uploading image...',
   finalizing: 'Finishing up...',

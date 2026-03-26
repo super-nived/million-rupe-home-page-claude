@@ -2,7 +2,7 @@
   "name": "pixellakh-functions",
   "description": "PixelLakh Cloud Functions — Razorpay payment gateway",
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "main": "index.js",
   "dependencies": {

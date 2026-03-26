@@ -7,7 +7,7 @@ const Razorpay = require("razorpay");
 admin.initializeApp();
 const db = admin.firestore();
 
-// Secrets stored in Firebase — never exposed to client
+// Secrets stored in Firebase — never exposed to client (v4)
 const razorpayKeyId = defineSecret("RAZORPAY_KEY_ID");
 const razorpayKeySecret = defineSecret("RAZORPAY_KEY_SECRET");
 
@@ -63,9 +63,15 @@ exports.createOrder = onRequest(
       // Amount: ₹1 per pixel, Razorpay expects paise (1 INR = 100 paise)
       const amountPaise = pixels * 100;
 
+      const keyId = razorpayKeyId.value();
+      const keySecret = razorpayKeySecret.value();
+
+      // Debug: log key ID prefix (safe to log)
+      console.log("Using Razorpay Key ID:", keyId.substring(0, 15) + "...");
+
       const razorpay = new Razorpay({
-        key_id: razorpayKeyId.value(),
-        key_secret: razorpayKeySecret.value(),
+        key_id: keyId,
+        key_secret: keySecret,
       });
 
       const order = await razorpay.orders.create({

@@ -7,6 +7,7 @@ import { fmtRupees } from '../../utils/formatters';
 import { MIN_PIXELS } from '../../constants/grid';
 import { triggerConfetti, showTicketModal } from '../lottery/lotterySlice';
 import { playCelebration, playError } from '../../utils/sounds';
+import { initiatePayment } from '../../services/paymentService';
 
 export function usePurchase(ads, notify) {
   const dispatch = useDispatch();
@@ -53,7 +54,6 @@ export function usePurchase(ads, notify) {
     const onProgress = (stage, message) => {
       setPurchaseStage(stage);
       if (stage === 'done') {
-        // Don't show 'done' as progress — the success toast handles it
         return;
       }
       if (stage === 'warning') {
@@ -63,30 +63,59 @@ export function usePurchase(ads, notify) {
       notify(message, 'progress');
     };
 
-    mutation.mutate(
-      { adData, imageFile: imageFileRef.current, onProgress },
-      {
-        onSuccess: (result) => {
-          setPurchaseStage(null);
-          const pixels = selection.px.toLocaleString();
-          const price = fmtRupees(selection.px);
-          const imgNote = hasImage && result.imageUrl ? ' with image' : hasImage ? ' (image pending)' : '';
-          notify(`${pixels} pixels purchased for ${price}${imgNote}!`, 'ok');
-          // Celebration
-          playCelebration();
-          dispatch(triggerConfetti());
-          dispatch(showTicketModal(result));
-          imageFileRef.current = null;
-          dispatch(resetPurchase());
-        },
-        onError: (err) => {
-          setPurchaseStage(null);
-          playError();
-          const message = err.message || 'Something went wrong';
-          notify(`Purchase failed — ${message}`, 'err');
-        },
-      }
-    );
+    // Start payment flow
+    setPurchaseStage('payment');
+    notify('Opening payment gateway...', 'progress');
+
+    initiatePayment({
+      pixelCount: selection.px,
+      amount: selection.px, // ₹1 per pixel
+      selection: {
+        bx: selection.bx,
+        by: selection.by,
+        bw: selection.bw,
+        bh: selection.bh,
+      },
+      adData,
+      onSuccess: (result) => {
+        // Payment successful, now save the ad with image
+        onProgress('saving', 'Payment successful! Saving your ad...');
+
+        mutation.mutate(
+          { adData, imageFile: imageFileRef.current, onProgress },
+          {
+            onSuccess: (adResult) => {
+              setPurchaseStage(null);
+              const pixels = selection.px.toLocaleString();
+              const price = fmtRupees(selection.px);
+              const imgNote = hasImage && adResult.imageUrl ? ' with image' : hasImage ? ' (image pending)' : '';
+              notify(`${pixels} pixels purchased for ${price}${imgNote}!`, 'ok');
+              playCelebration();
+              dispatch(triggerConfetti());
+              dispatch(showTicketModal(adResult));
+              imageFileRef.current = null;
+              dispatch(resetPurchase());
+            },
+            onError: (err) => {
+              setPurchaseStage(null);
+              playError();
+              const message = err.message || 'Something went wrong';
+              notify(`Payment successful but ad save failed — ${message}. Contact support.`, 'err');
+            },
+          }
+        );
+      },
+      onFailure: (error) => {
+        setPurchaseStage(null);
+        playError();
+        const message = error.message || 'Payment failed';
+        if (message.includes('cancelled')) {
+          notify('Payment cancelled', 'warning');
+        } else {
+          notify(`Payment failed — ${message}`, 'err');
+        }
+      },
+    });
   }, [dispatch, selection, form, mutation, notify]);
 
   const clearArea = useCallback(() => {
